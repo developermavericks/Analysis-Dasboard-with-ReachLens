@@ -16,9 +16,11 @@ import {
   Info,
   Twitter,
   Linkedin,
-  Binary
+  Binary,
+  FileUp,
+  CheckCircle2
 } from 'lucide-react';
-import { analyzeUrl } from '../../api/reachlens';
+import { analyzeUrl, bulkAnalyzeUrls } from '../../api/reachlens';
 
 export function ReachLensView() {
     const [loading, setLoading] = useState(false);
@@ -28,6 +30,10 @@ export function ReachLensView() {
     const [timer, setTimer] = useState(0);
     const [showLogic, setShowLogic] = useState(false);
     const [url, setUrl] = useState('');
+    const [mode, setMode] = useState<'single' | 'bulk'>('single');
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkComplete, setBulkComplete] = useState(false);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
     const startTimer = (seconds: number) => {
         setTimer(seconds);
@@ -63,6 +69,27 @@ export function ReachLensView() {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setBulkLoading(true);
+        setBulkComplete(false);
+        setError('');
+
+        try {
+            const blob = await bulkAnalyzeUrls(file, version);
+            const dUrl = window.URL.createObjectURL(blob);
+            setDownloadUrl(dUrl);
+            setBulkComplete(true);
+        } catch (err) {
+            setError('Bulk analysis failed. Please ensure the Excel file is correctly formatted with URLs in the first column.');
+            console.error(err);
+        } finally {
+            setBulkLoading(false);
         }
     };
 
@@ -175,33 +202,123 @@ export function ReachLensView() {
                       Deep verify the true impact and provenance of any URL using agentic intelligence and causal logic.
                     </p>
 
-                    <form onSubmit={handleSearch} className="w-full max-w-3xl flex items-center gap-3 bg-white/5 p-3 rounded-3xl backdrop-blur-xl border border-white/10 shadow-2xl transition-all focus-within:ring-4 focus-within:ring-blue-500/10">
-                        <div className="pl-6 text-slate-500">
-                           <Link2 size={22} />
-                        </div>
-                        <input 
-                            type="url" 
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder="Paste any article URL to begin..."
-                            className="bg-transparent border-none focus:ring-0 text-white placeholder-slate-500 w-full text-lg font-bold py-4"
-                        />
+                    <div className="flex gap-4 mb-8 p-1.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
                         <button 
-                            type="submit"
-                            disabled={loading}
-                            className={`px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3
-                                ${loading ? 'bg-slate-800 text-slate-500 shadow-none' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-500/20 active:scale-95'}`}
+                            onClick={() => setMode('single')}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${mode === 'single' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
                         >
-                            {loading ? (
-                                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-                                    <Binary size={18} />
-                                </motion.div>
-                            ) : (
-                                <Compass size={18} />
-                            )}
-                            {loading ? 'Processing' : 'Launch Scan'}
+                            Single URL
                         </button>
-                    </form>
+                        <button 
+                            onClick={() => setMode('bulk')}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${mode === 'bulk' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Bulk Excel
+                        </button>
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {mode === 'single' ? (
+                            <motion.form 
+                                key="single"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                onSubmit={handleSearch} 
+                                className="w-full max-w-3xl flex items-center gap-3 bg-white/5 p-3 rounded-3xl backdrop-blur-xl border border-white/10 shadow-2xl transition-all focus-within:ring-4 focus-within:ring-blue-500/10"
+                            >
+                                <div className="pl-6 text-slate-500">
+                                   <Link2 size={22} />
+                                </div>
+                                <input 
+                                    type="url" 
+                                    value={url}
+                                    onChange={(e) => setUrl(e.target.value)}
+                                    placeholder="Paste any article URL to begin..."
+                                    className="bg-transparent border-none focus:ring-0 text-white placeholder-slate-500 w-full text-lg font-bold py-4"
+                                />
+                                <button 
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3
+                                        ${loading ? 'bg-slate-800 text-slate-500 shadow-none' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-500/20 active:scale-95'}`}
+                                >
+                                    {loading ? (
+                                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                                            <Binary size={18} />
+                                        </motion.div>
+                                    ) : (
+                                        <Compass size={18} />
+                                    )}
+                                    {loading ? 'Processing' : 'Launch Scan'}
+                                </button>
+                            </motion.form>
+                        ) : (
+                            <motion.div 
+                                key="bulk"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="w-full max-w-3xl"
+                            >
+                                <label className="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/20 rounded-[32px] bg-white/5 hover:bg-white/10 transition-all cursor-pointer overflow-hidden">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        {bulkLoading ? (
+                                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}>
+                                                <Binary className="w-12 h-12 text-blue-400 mb-4" />
+                                            </motion.div>
+                                        ) : bulkComplete ? (
+                                            <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-4 animate-bounce" />
+                                        ) : (
+                                            <FileUp className="w-12 h-12 text-slate-500 group-hover:text-blue-400 transition-colors mb-4" />
+                                        )}
+                                        <p className="mb-2 text-sm text-slate-400 font-bold uppercase tracking-widest">
+                                            {bulkLoading ? 'Processing Intelligence...' : bulkComplete ? 'Analysis Exported!' : 'Upload Analysis Excel'}
+                                        </p>
+                                        <p className="text-xs text-slate-500 font-medium italic">
+                                            {bulkLoading ? 'This may take a few moments' : 'URLs must be in the first column'}
+                                        </p>
+                                    </div>
+                                    <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleBulkUpload} disabled={bulkLoading} />
+                                    
+                                    {bulkLoading && (
+                                        <motion.div 
+                                            className="absolute bottom-0 left-0 h-1 bg-blue-500"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: '100%' }}
+                                            transition={{ duration: 15 }}
+                                        />
+                                    )}
+                                </label>
+
+                                {bulkComplete && downloadUrl && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-6 flex flex-col items-center"
+                                    >
+                                        <a 
+                                            href={downloadUrl} 
+                                            download={`reachlens_bulk_results_${new Date().getTime()}.xlsx`}
+                                            className="flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+                                        >
+                                            <FileUp size={18} className="rotate-180" />
+                                            Download Analysis Report
+                                        </a>
+                                        <button 
+                                            onClick={() => {
+                                                setBulkComplete(false);
+                                                setDownloadUrl(null);
+                                            }}
+                                            className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        >
+                                            Reset / Upload New File
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 

@@ -2,25 +2,18 @@ import type { Request, Response } from 'express';
 import { SmartScraper } from '../services/SmartScraper.js';
 import { SocialScraperService } from '../services/SocialScraperService.js';
 import { ReachEstimator } from '../services/ReachEstimator.js';
+import * as xlsx from 'xlsx';
+import multer from 'multer';
 // import db from '../db.js'; // Removed for stateless deployment
 
 
 const smartScraper = new SmartScraper();
 const socialScraper = new SocialScraperService();
 
-export const analyzeUrl = async (req: Request, res: Response) => {
-    let { url, version } = req.body;
+// Multer config for file uploads
+export const upload = multer({ storage: multer.memoryStorage() });
 
-    if (!url) {
-        res.status(400).json({ error: 'URL is required' });
-        return;
-    }
-
-    // Default to v5 if not specified
-    if (!version) version = 'v5';
-    // Validate version
-    if (!['v2', 'v3', 'v4', 'v5', 'v6'].includes(version)) version = 'v5';
-
+async function performAnalysis(url: string, version: string) {
     try {
         const [smartResult, redditResult] = await Promise.all([
             smartScraper.scrapeUrl(url),
@@ -40,7 +33,6 @@ export const analyzeUrl = async (req: Request, res: Response) => {
         let upv = 0;
 
         if (smartResult.source === 'Estimator') {
-            // CORE 2: The "Estimator" Path
             const estimate = ReachEstimator.estimate(url, smartResult.title || '', version, smartResult);
             estimatedReach = estimate.reach;
             confidenceScore = estimate.confidence;
@@ -49,13 +41,8 @@ export const analyzeUrl = async (req: Request, res: Response) => {
             if (estimate.uv) uv = estimate.uv;
             // @ts-ignore
             if (estimate.upv) upv = estimate.upv;
-
         } else {
-            // ... (Stealth logic omitted for brevity, no changes needed there as UV/UPV is for Estimator/v6)
-            // CORE 1: The "Stealth" Path (Real Data)
             confidenceScore = 100;
-
-            // 1. Domain Authority Weight (Common)
             let avgDomainWeight = 1;
             if (smartResult.domains && smartResult.domains.length > 0) {
                 const weights = smartResult.domains.map(d => ReachEstimator.getDomainWeight(d));
@@ -63,34 +50,28 @@ export const analyzeUrl = async (req: Request, res: Response) => {
                 avgDomainWeight = totalWeight / weights.length;
             }
 
-            // 2. Base Value & Positional Logic
-            let baseVal = 500; // v2 default
+            let baseVal = 500;
             let positionalWeight = 1.0;
             if (version === 'v4') baseVal = 425;
             if (version === 'v5') baseVal = 380;
-            if (version === 'v6') baseVal = 350; // v6 default (Grounded Base simulation)
+            if (version === 'v6') baseVal = 350;
 
             if (version !== 'v2') {
-                // v3+ uses Heat Map
                 positionalWeight = smartResult.prominenceScore || 1.0;
             }
 
-            // 3. Indexing Bonus
             let indexingBonus = 5000;
             if (smartResult.domains.some(d => d.includes('news') || d.includes('times') || d.includes('post'))) {
                 indexingBonus = 10000;
             }
 
-            // v4/v5/v6 GEO Boost
             if ((version === 'v4' || version === 'v5' || version === 'v6') &&
                 smartResult.domains.some(d => d.includes('perplexity') || d.includes('gemini') || d.includes('chatgpt'))) {
                 indexingBonus += 25000;
             }
 
-            // Stealth Formula
             estimatedReach = ((googleCount + redditCount) * baseVal * avgDomainWeight * positionalWeight) + indexingBonus;
 
-            // Sentiment (v4+) - Weighted Analysis
             if ((version === 'v4' || version === 'v5' || version === 'v6')) {
                 sentimentScore = ReachEstimator.analyzeSentiment(
                     smartResult.title || '', 
@@ -100,96 +81,238 @@ export const analyzeUrl = async (req: Request, res: Response) => {
             }
         }
 
-        // --- Universal Modifiers (Versioned) ---
-
-        // v9.0: Content Provenance Graph (CPG) & 5-Tier Classification
         let provenanceTier = 'T0';
         if (version === 'v9') {
             const topDomains = smartResult.domains.slice(0, 5);
             const targetDomain = new URL(url).hostname.replace('www.', '');
             const isTargetInTop3 = topDomains.slice(0, 3).some(d => targetDomain.includes(d));
             
-            if (isTargetInTop3) {
-                provenanceTier = 'T0'; // Origin
-            } else if (topDomains.some(d => d.includes('msn.com') || d.includes('yahoo.com') || d.includes('apnews.com') || d.includes('reuters.com'))) {
-                provenanceTier = 'T1'; // Licensed Syndication
-            } else if (topDomains.length > 0) {
-                provenanceTier = 'T2'; // Indexed Reprint
-            } else {
-                provenanceTier = 'T3'; // Probable Scraper/Thin
-            }
+            if (isTargetInTop3) provenanceTier = 'T0';
+            else if (topDomains.some(d => d.includes('msn.com') || d.includes('yahoo.com') || d.includes('apnews.com') || d.includes('reuters.com'))) provenanceTier = 'T1';
+            else if (topDomains.length > 0) provenanceTier = 'T2';
+            else provenanceTier = 'T3';
         }
 
-        // v8.0/v9.0 integration for reprint flag
         const isReprint = provenanceTier !== 'T0';
-
         const modifiers = ReachEstimator.applyModifiers(estimatedReach, version, new Date(), smartResult.domains, {
             ...smartResult,
             isReprint,
             provenanceTier,
             url
         });
+        
         estimatedReach = modifiers.finalReach;
         const velocity = modifiers.velocity;
         const agenticStatus = modifiers.agenticStatus;
-        const deviation = (modifiers as any).deviation;
-        const uvr = (modifiers as any).uv; // v9 UVR (Unique Verified Reach)
+        const uvr = (modifiers as any).uv;
+        const entropy = (modifiers as any).entropy || 0;
 
-        // Save to DB - REMOVED for stateless deployment
-        /*
-        const stmt = db.prepare(`
-          INSERT INTO snapshots (target_url, total_mentions, google_mentions, reddit_mentions, raw_data)
-          VALUES (?, ?, ?, ?, ?)
-        `);
-
-        const info = stmt.run(
+        return {
             url,
             totalMentions,
-            googleCount,
-            redditCount,
-            JSON.stringify({
-                google: smartResult,
-                reddit: redditResult,
-                source: smartResult.source,
-                confidence: confidenceScore,
-                version: version, // Store version used
-                sentiment: sentimentScore
-            })
-        );
-        */
-
-
-        res.json({
-            id: Math.floor(Math.random() * 1000000), // Random ID for stateless response
-
-            url,
-            totalMentions,
+            googleMentions: googleCount,
+            redditMentions: redditCount,
             estimatedReach,
             confidenceScore,
             sentimentScore,
             velocity,
             agenticStatus,
             version,
+            uvr: uvr || uv,
+            entropy,
+            title: smartResult.title || 'N/A'
+        };
+    } catch (error) {
+        console.error(`Analysis failed for ${url}:`, error);
+        throw error;
+    }
+}
+
+export const analyzeUrl = async (req: Request, res: Response) => {
+    let { url, version } = req.body;
+    if (!url) {
+        res.status(400).json({ error: 'URL is required' });
+        return;
+    }
+    if (!version) version = 'v5';
+    if (!['v2', 'v3', 'v4', 'v5', 'v6'].includes(version)) version = 'v5';
+
+    try {
+        // We still need the full response for the detailed UI, so we call the internal logic and re-wrap
+        // Actually, let's just keep the original detailed logic here or refactor it better.
+        // For simplicity, I'll keep the original detailed response in analyzeUrl and use performAnalysis for bulk.
+        // But let's check if I can just use performAnalysis and add the "breakdown" part.
+        
+        const [smartResult, redditResult] = await Promise.all([
+            smartScraper.scrapeUrl(url),
+            socialScraper.scrapeReddit(url)
+        ]);
+
+        const googleCount = smartResult.totalMentions || 0;
+        const redditCount = redditResult.count || 0;
+        const totalMentions = googleCount + redditCount;
+
+        let estimatedReach = 0;
+        let confidenceScore = 0;
+        let sentimentScore = 0;
+        let uv = 0;
+        let upv = 0;
+
+        if (smartResult.source === 'Estimator') {
+            const estimate = ReachEstimator.estimate(url, smartResult.title || '', version, smartResult);
+            estimatedReach = estimate.reach;
+            confidenceScore = estimate.confidence;
+            sentimentScore = estimate.sentimentScore;
+            if (estimate.uv) uv = estimate.uv;
+            if (estimate.upv) upv = estimate.upv;
+        } else {
+            confidenceScore = 100;
+            let avgDomainWeight = 1;
+            if (smartResult.domains && smartResult.domains.length > 0) {
+                const weights = smartResult.domains.map(d => ReachEstimator.getDomainWeight(d));
+                const totalWeight = weights.reduce((a, b) => a + b, 0);
+                avgDomainWeight = totalWeight / weights.length;
+            }
+            let baseVal = 500;
+            let positionalWeight = 1.0;
+            if (version === 'v4') baseVal = 425;
+            if (version === 'v5') baseVal = 380;
+            if (version === 'v6') baseVal = 350;
+            if (version !== 'v2') positionalWeight = smartResult.prominenceScore || 1.0;
+            let indexingBonus = 5000;
+            if (smartResult.domains.some(d => d.includes('news') || d.includes('times') || d.includes('post'))) indexingBonus = 10000;
+            if ((version === 'v4' || version === 'v5' || version === 'v6') &&
+                smartResult.domains.some(d => d.includes('perplexity') || d.includes('gemini') || d.includes('chatgpt'))) indexingBonus += 25000;
+            estimatedReach = ((googleCount + redditCount) * baseVal * avgDomainWeight * positionalWeight) + indexingBonus;
+            if ((version === 'v4' || version === 'v5' || version === 'v6')) {
+                sentimentScore = ReachEstimator.analyzeSentiment(smartResult.title || '', smartResult.metaDescription, smartResult.snippet);
+            }
+        }
+
+        let provenanceTier = 'T0';
+        if (version === 'v9') {
+            const topDomains = smartResult.domains.slice(0, 5);
+            const targetDomain = new URL(url).hostname.replace('www.', '');
+            const isTargetInTop3 = topDomains.slice(0, 3).some(d => targetDomain.includes(d));
+            if (isTargetInTop3) provenanceTier = 'T0';
+            else if (topDomains.some(d => d.includes('msn.com') || d.includes('yahoo.com') || d.includes('apnews.com') || d.includes('reuters.com'))) provenanceTier = 'T1';
+            else if (topDomains.length > 0) provenanceTier = 'T2';
+            else provenanceTier = 'T3';
+        }
+
+        const isReprint = provenanceTier !== 'T0';
+        const modifiers = ReachEstimator.applyModifiers(estimatedReach, version, new Date(), smartResult.domains, {
+            ...smartResult, isReprint, provenanceTier, url
+        });
+        estimatedReach = modifiers.finalReach;
+        const velocity = modifiers.velocity;
+        const agenticStatus = modifiers.agenticStatus;
+        const uvr = (modifiers as any).uv;
+
+        res.json({
+            id: Math.floor(Math.random() * 1000000),
+            url, totalMentions, estimatedReach, confidenceScore, sentimentScore,
+            velocity, agenticStatus, version,
             breakdown: {
                 google: { ...smartResult, totalMentions: googleCount },
                 reddit: redditResult,
                 meta: {
-                    agenticStatus: agenticStatus,
+                    agenticStatus,
                     logic: getVersionName(version),
-                    uv: uvr || uv || (modifiers as any).uv || undefined,
-                    upv: (modifiers as any).upv || undefined,
+                    uv: uvr || uv,
+                    upv: (modifiers as any).upv,
                     socialProof: smartResult.socialProof,
-                    deviation: deviation,
-                    isReprint: isReprint,
-                    provenanceTier: provenanceTier,
-                    entropy: (modifiers as any).entropy || undefined
+                    isReprint, provenanceTier,
+                    entropy: (modifiers as any).entropy
                 }
             }
         });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Analysis failed' });
+    }
+};
+
+export const bulkAnalyze = async (req: Request, res: Response) => {
+    if (!req.file) {
+        res.status(400).json({ error: 'Excel file is required' });
+        return;
+    }
+
+    const { version = 'v5' } = req.body;
+
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+            res.status(400).json({ error: 'Excel file has no sheets' });
+            return;
+        }
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) {
+            res.status(400).json({ error: 'Excel sheet not found' });
+            return;
+        }
+        const data: any[] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+        const urls: string[] = data
+            .map(row => (row[0] || '').toString().trim())
+            .filter(url => url.startsWith('http'));
+
+        if (urls.length === 0) {
+            res.status(400).json({ error: 'No valid URLs found in the first column' });
+            return;
+        }
+
+        const results = [];
+        for (const url of urls) {
+            try {
+                const result = await performAnalysis(url, version);
+                results.push({
+                    'URL': result.url,
+                    'Google Mentions': result.googleMentions,
+                    'Reddit Mentions': result.redditMentions,
+                    'Total Mentions': result.totalMentions,
+                    'Estimated Reach': Math.round(result.estimatedReach),
+                    'UVR (Unique Reach)': Math.round(result.uvr),
+                    'Social Diffusion': result.entropy.toFixed(2),
+                    'Sentiment Impact': result.sentimentScore > 1 ? "Positive" : result.sentimentScore < -1 ? "Controversy" : "Neutral",
+                    'Sentiment Score': result.sentimentScore,
+                    'Truth Confidence (%)': result.confidenceScore,
+                    'Agentic Rank': result.agenticStatus || 'None',
+                    'Growth Velocity': result.velocity
+                });
+            } catch (err) {
+                results.push({
+                    'URL': url,
+                    'Google Mentions': 0,
+                    'Reddit Mentions': 0,
+                    'Total Mentions': 0,
+                    'Estimated Reach': 0,
+                    'UVR (Unique Reach)': 0,
+                    'Social Diffusion': '0.00',
+                    'Sentiment Impact': 'Error',
+                    'Sentiment Score': 0,
+                    'Truth Confidence (%)': 0,
+                    'Agentic Rank': 'Error',
+                    'Growth Velocity': 0
+                });
+            }
+        }
+
+        const newSheet = xlsx.utils.json_to_sheet(results);
+        const newWorkbook = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(newWorkbook, newSheet, 'Analysis Results');
+        
+        const buffer = xlsx.write(newWorkbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename=reachlens_analysis.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Bulk analysis failed:', error);
+        res.status(500).json({ error: 'Bulk analysis failed' });
     }
 };
 

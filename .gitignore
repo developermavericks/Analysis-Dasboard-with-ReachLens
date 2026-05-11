@@ -88,6 +88,8 @@ uploads/
 analysis/uploads/
 *.csv
 *.json
+!package.json
+!package-lock.json
 api_response*.json
 sample*.csv
 test*.csv

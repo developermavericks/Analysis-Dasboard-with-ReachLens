@@ -14,3 +14,20 @@ export const analyzeUrl = async (url: string, version: string = 'v5') => {
     }
     return await response.json();
 };
+
+export const bulkAnalyzeUrls = async (file: File, version: string = 'v5') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('version', version);
+
+    const response = await fetch(`${REACHLENS_API_URL}/bulk-analyze`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to perform bulk analysis');
+    }
+
+    return await response.blob();
+};
