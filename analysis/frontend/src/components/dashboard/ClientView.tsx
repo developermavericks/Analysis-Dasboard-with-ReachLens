@@ -1,5 +1,5 @@
 import { DashboardWidgets } from "./widgets_all";
 
-export function ClientView({ data }: { data: any }) {
-  return <DashboardWidgets data={data} />;
+export function ClientView({ data, onDrillDown }: { data: any, onDrillDown: (filters: any) => void }) {
+  return <DashboardWidgets data={data} onDrillDown={onDrillDown} />;
 }

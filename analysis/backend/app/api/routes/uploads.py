@@ -72,6 +72,33 @@ def get_status(upload_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/uploads/from-db", response_model=UploadCreateResponse)
+async def create_db_upload(data: dict, db: Session = Depends(get_db)):
+    date_str = data.get("date")
+    sector = data.get("sector")
+    if not date_str or not sector:
+        raise HTTPException(status_code=400, detail="Date and Sector are required")
+    
+    uid = uuid.uuid4()
+    # In a real scenario, we would verify data exists for this date/sector here
+    upload = Upload(
+        id=uid, 
+        filename=f"DB_IMPORT_{sector}_{date_str}", 
+        status="pending", 
+        error_log=[{"type": "db_import", "date": date_str, "sector": sector}]
+    )
+    db.add(upload)
+    db.commit()
+
+    # Trigger a specialized task for DB import
+    from app.workers.orchestrator import process_db_import
+    task = process_db_import.delay(str(uid), date_str, sector)
+    upload.celery_task_id = task.id
+    db.commit()
+
+    return {"upload_id": str(uid), "status": "pending", "message": "Database retrieval synchronized"}
+
+
 @router.delete("/uploads/{upload_id}")
 def delete_upload(upload_id: str, db: Session = Depends(get_db)):
     upload = db.execute(select(Upload).where(Upload.id == upload_id)).scalar_one_or_none()

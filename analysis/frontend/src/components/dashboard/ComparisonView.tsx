@@ -11,7 +11,7 @@ import { HotTopics } from "./widgets/HotTopics";
 import { PositiveWordCloud } from "./widgets/PositiveWordCloud";
 import { NegativeWordCloud } from "./widgets/NegativeWordCloud";
 
-export function ComparisonView({ uploadId, mainClient, mainData }: { uploadId: string, mainClient: string, mainData: any }) {
+export function ComparisonView({ uploadId, mainClient, mainData, onDrillDown }: { uploadId: string, mainClient: string, mainData: any, onDrillDown: (filters: any) => void }) {
   const [competitor, setCompetitor] = useState<string>("");
   const [compData, setCompData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -87,7 +87,7 @@ export function ComparisonView({ uploadId, mainClient, mainData }: { uploadId: s
               
               <ComparisonKpis meta={mainData?.meta} />
               
-              <AnalysisBlocks data={mainData} />
+              <AnalysisBlocks data={mainData} onDrillDown={(f: any) => onDrillDown({ ...f, scope: mainClient })} />
             </div>
 
             {/* Competitor Column (B) */}
@@ -100,7 +100,7 @@ export function ComparisonView({ uploadId, mainClient, mainData }: { uploadId: s
               {compData ? (
                  <>
                    <ComparisonKpis meta={compData?.meta} color="rose" />
-                   <AnalysisBlocks data={compData} isRival />
+                   <AnalysisBlocks data={compData} isRival onDrillDown={(f: any) => onDrillDown({ ...f, scope: competitor })} />
                  </>
               ) : (
                 <div className="dashboard-card min-h-screen flex items-center justify-center text-slate-400 font-medium bg-slate-50/50 border-dashed">
@@ -317,7 +317,7 @@ function calculateWeightedMentions(data: any) {
   return cloud.filter((w: any) => techKeywords.includes(w.word.toLowerCase())).length;
 }
 
-function AnalysisBlocks({ data, isRival = false }: { data: any, isRival?: boolean }) {
+function AnalysisBlocks({ data, onDrillDown, isRival = false }: { data: any, onDrillDown: (filters: any) => void, isRival?: boolean }) {
   const w = data?.widgets || {};
   const accentColor = isRival ? "rose" : "blue";
 
@@ -325,7 +325,7 @@ function AnalysisBlocks({ data, isRival = false }: { data: any, isRival?: boolea
     <div className="space-y-8">
       <div className="dashboard-card p-6">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Sentiment Spectrum</h4>
-        <SentimentOverview donut={w.sentiment_overview?.donut ?? []} />
+        <SentimentOverview donut={w.sentiment_overview?.donut ?? []} onDrillDown={(sentiment) => onDrillDown({ sentiment })} />
       </div>
 
       <div className="dashboard-card p-6">
@@ -335,17 +335,26 @@ function AnalysisBlocks({ data, isRival = false }: { data: any, isRival?: boolea
 
       <div className="dashboard-card p-6">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Top Media Outlets</h4>
-        <TopPublications data={w.top_publications?.data?.slice(0, 10) ?? []} />
+        <TopPublications 
+          data={w.top_publications?.data?.slice(0, 10) ?? []} 
+          onDrillDown={(publication) => onDrillDown({ publication })} 
+        />
       </div>
 
       <div className="dashboard-card p-6">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Brand & Company Mentions</h4>
-        <TopCompanies data={w.top_companies?.data?.slice(0, 8) ?? []} />
+        <TopCompanies 
+          data={w.top_companies?.data?.slice(0, 8) ?? []} 
+          onDrillDown={(brand) => onDrillDown({ brand })} 
+        />
       </div>
 
       <div className="dashboard-card p-6">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Key Journalists</h4>
-        <TopJournalists data={w.top_journalists?.data?.slice(0, 8) ?? []} />
+        <TopJournalists 
+          data={w.top_journalists?.data?.slice(0, 8) ?? []} 
+          onDrillDown={(author) => onDrillDown({ author })} 
+        />
       </div>
 
       <div className="dashboard-card p-6">

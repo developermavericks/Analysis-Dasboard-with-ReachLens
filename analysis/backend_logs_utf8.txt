@@ -1,0 +1,7 @@
+﻿backend-1  | INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+backend-1  | INFO  [alembic.runtime.migration] Will assume transactional DDL.
+backend-1  | INFO:     Started server process [9]
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Application startup complete.
+backend-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+backend-1  | INFO:     172.18.0.9:34676 - "GET /api/ HTTP/1.1" 404 Not Found

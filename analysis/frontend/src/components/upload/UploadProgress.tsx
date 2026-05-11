@@ -1,4 +1,15 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Loader2, 
+  CheckCircle2, 
+  AlertCircle, 
+  Sparkles,
+  BookOpen,
+  Coffee,
+  Check,
+  X
+} from "lucide-react";
 
 type Props = { uploadId: string; status: string };
 
@@ -9,121 +20,133 @@ export function UploadProgress({ uploadId, status }: Props) {
   
   const [step, setStep] = useState(0);
   const steps = [
-    "Auditing media coverage...",
-    "Decoding sentiment patterns...",
-    "Benchmarking competitor performance...",
-    "Synthesizing strategic insights...",
-    "Finalizing intelligence report..."
+    "Carefully reading your materials...",
+    "Understanding the general mood...",
+    "Looking at how you compare to others...",
+    "Picking out the most important bits...",
+    "Putting it all together for you..."
   ];
 
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(() => {
         setStep((s) => (s + 1) % steps.length);
-      }, 3000);
+      }, 3500);
       return () => clearInterval(interval);
     }
   }, [isProcessing]);
 
   return (
-    <div className="max-w-4xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className={`dashboard-card overflow-hidden transition-all duration-500 border-l-[6px] 
-        ${isProcessing ? 'border-l-blue-500 shadow-blue-100' : ''}
-        ${isComplete ? 'border-l-emerald-500 shadow-emerald-100' : ''}
-        ${isFailed ? 'border-l-rose-500 shadow-rose-100' : ''}`}>
+    <div className="max-w-4xl mx-auto mt-12 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className={`dashboard-card relative overflow-hidden transition-all duration-1000 border-none shadow-2xl
+        ${isProcessing ? 'ring-1 ring-blue-500/20 shadow-blue-500/10' : ''}
+        ${isComplete ? 'ring-1 ring-emerald-500/20 shadow-emerald-500/10' : ''}
+        ${isFailed ? 'ring-1 ring-rose-500/20 shadow-rose-500/10' : ''}`}>
         
-        <div className="p-10">
-          <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-6">
-               <div className={`w-16 h-16 rounded-[22px] flex items-center justify-center shadow-lg transition-all duration-700
-                 ${isProcessing ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white animate-pulse rotate-3' : ''}
-                 ${isComplete ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white scale-110' : ''}
-                 ${isFailed ? 'bg-gradient-to-br from-rose-500 to-orange-600 text-white' : ''}`}>
-                 
-                 {isProcessing && (
-                   <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                   </svg>
-                 )}
-                 {isComplete && (
-                   <svg className="w-9 h-9 animate-in zoom-in duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                   </svg>
-                 )}
-                 {isFailed && (
-                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-                   </svg>
-                 )}
-               </div>
-               
-               <div>
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-2">
-                    {isProcessing && "Synthesizing Intelligence..."}
-                    {isComplete && "Intelligence Report Ready"}
-                    {isFailed && "Process Terminated"}
+        {/* Animated Progress Stripe */}
+        {isProcessing && (
+          <motion.div 
+            className="absolute top-0 left-0 h-1 bg-gradient-to-r from-blue-400 via-blue-600 to-indigo-600"
+            initial={{ width: 0 }}
+            animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
+            transition={{ duration: 1, ease: "easeInOut" }}
+          />
+        )}
+
+        <div className="p-12">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+             <div className="relative shrink-0">
+                <AnimatePresence mode="wait">
+                  {isProcessing ? (
+                    <motion.div 
+                      key="proc"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      className="w-24 h-24 rounded-[32px] bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner"
+                    >
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                        className="absolute"
+                      >
+                         <div className="w-20 h-20 border-2 border-dashed border-blue-200 rounded-full" />
+                      </motion.div>
+                      <Coffee size={32} className="relative z-10" />
+                    </motion.div>
+                  ) : isComplete ? (
+                    <motion.div 
+                      key="comp"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1.1, opacity: 1 }}
+                      className="w-24 h-24 rounded-[32px] bg-emerald-50 flex items-center justify-center text-emerald-600"
+                    >
+                      <CheckCircle2 size={40} />
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="fail"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-24 h-24 rounded-[32px] bg-rose-50 flex items-center justify-center text-rose-600"
+                    >
+                      <AlertCircle size={40} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
+             
+             <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+                    {isProcessing && "Getting your insights ready..."}
+                    {isComplete && "Everything is ready for you!"}
+                    {isFailed && "Something went wrong"}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-md">ID: {uploadId.slice(0, 10)}</span>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isProcessing ? 'bg-blue-400 animate-ping' : isComplete ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+                  <div className={`w-fit mx-auto md:mx-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border
+                    ${isProcessing ? 'bg-blue-50 text-blue-600 border-blue-100' : ''}
+                    ${isComplete ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : ''}
+                    ${isFailed ? 'bg-rose-50 text-rose-600 border-rose-100' : ''}`}>
+                    {isProcessing ? "Processing" : isComplete ? "Ready" : "Error"}
                   </div>
-               </div>
-            </div>
-            
-            <div className={`px-5 py-2 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-sm border
-              ${isProcessing ? 'bg-blue-50 text-blue-600 border-blue-100' : ''}
-              ${isComplete ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : ''}
-              ${isFailed ? 'bg-rose-50 text-rose-600 border-rose-100' : ''}`}>
-              {isProcessing ? "PROCESSING" : isComplete ? "READY" : "ERROR"}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {isProcessing && (
-              <div className="animate-in fade-in duration-1000">
-                <div className="flex justify-between items-end mb-3">
-                   <p className="text-sm font-semibold text-blue-700 animate-pulse">{steps[step]}</p>
-                   <p className="text-[10px] font-bold text-slate-400 transition-all duration-300">STAGE {step + 1} / 5</p>
                 </div>
-                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-blue-500/20"
-                    style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-                  ></div>
-                </div>
-                <p className="mt-4 text-sm text-slate-500 leading-relaxed max-w-2xl">
-                  Our intelligence engine is currently auditing your media dataset. We are normalizing sentiment signatures and cross-referencing competitor mentions to build your strategic dashboard.
-                </p>
-              </div>
-            )}
 
-            {isComplete && (
-              <div className="animate-in slide-in-from-top-2 duration-500 delay-200">
-                 <div className="flex items-start gap-4 p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100/80">
-                    <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-slate-800 font-bold mb-1">Synthesis Successful</p>
-                      <p className="text-sm font-medium text-slate-500 leading-relaxed">
-                        The extraction process has finished. Deep strategic insights and competitive benchmarks have been mapped across your private dashboard. Explore the findings below.
-                      </p>
-                    </div>
-                 </div>
-              </div>
-            )}
+                <AnimatePresence mode="wait">
+                   <motion.p 
+                     key={step}
+                     initial={{ opacity: 0, y: 5 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, y: -5 }}
+                     className="text-lg font-medium text-slate-400 mb-6"
+                   >
+                     {isProcessing ? steps[step] : isComplete ? "We've finished organizing your dashboard." : "We couldn't quite finish reading everything."}
+                   </motion.p>
+                </AnimatePresence>
 
-            {isFailed && (
-              <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-100/80">
-                <p className="text-rose-800 font-bold mb-1">Could not finalize intelligence artifacts</p>
-                <p className="text-sm font-medium text-slate-500 leading-relaxed">
-                  An error occurred during the multi-dimensional analysis of your dataset. Please ensure the file format matches Maverick's ingestion standards and try again.
-                </p>
-              </div>
-            )}
+                {isProcessing && (
+                  <div className="space-y-4">
+                     <div className="flex items-center gap-2 text-slate-300">
+                        <Loader2 size={14} className="animate-spin" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Stage {step + 1} of 5</span>
+                     </div>
+                     <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+                       We're currently reading through your materials and organizing them into a clear, strategic view. We'll have everything ready for you in just a moment.
+                     </p>
+                  </div>
+                )}
+
+                {isComplete && (
+                   <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+                     Your personalized intelligence dashboard is now fully prepared. You can find all the sentiment trends, competitor benchmarks, and key topics below.
+                   </p>
+                )}
+
+                {isFailed && (
+                   <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+                     We ran into a bit of trouble while reading through your data. Please check that the file is in the right format and try uploading it again.
+                   </p>
+                )}
+             </div>
           </div>
         </div>
       </div>

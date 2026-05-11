@@ -1,5 +1,5 @@
 
-const REACHLENS_API_URL = 'http://localhost:3005/api';
+const REACHLENS_API_URL = 'http://localhost:4005/api';
 
 export const analyzeUrl = async (url: string, version: string = 'v5') => {
     const response = await fetch(`${REACHLENS_API_URL}/analyze`, {

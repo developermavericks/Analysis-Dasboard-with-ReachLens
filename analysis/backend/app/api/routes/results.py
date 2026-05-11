@@ -113,3 +113,57 @@ def get_scopes(
     
     values = sorted([r for r in rows if r])
     return {"type": type, "values": values}
+
+
+@router.get("/uploads/{upload_id}/articles")
+def get_articles(
+    upload_id: str,
+    sentiment: str | None = None,
+    publication: str | None = None,
+    author: str | None = None,
+    brand: str | None = None,
+    scope: str = "General",
+    scope_type: str = "sector",
+    db: Session = Depends(get_db),
+):
+    """Retrieve articles filtered by specific criteria for the drill-down view."""
+    query = select(Article).where(Article.upload_id == upload_id)
+    
+    # Intelligence / Entity Scope Filter
+    if scope != "General":
+        if scope_type == "client":
+            # Filter by client_tags using PostgreSQL any()
+            query = query.where(Article.client_tags.any(scope))
+        else:
+            query = query.where(Article.sector == scope)
+        
+    # Selection Filters
+    if sentiment:
+        query = query.where(Article.sentiment_label == sentiment.lower())
+    if publication:
+        query = query.where(Article.publisher == publication)
+    if author:
+        query = query.where(Article.author == author)
+    if brand:
+        # brand is stored in entity_orgs JSONB list
+        query = query.where(Article.entity_orgs.contains([brand]))
+        
+    articles = db.execute(query.limit(100)).scalars().all()
+    
+    return {
+        "upload_id": upload_id,
+        "count": len(articles),
+        "articles": [
+            {
+                "id": str(article.id),
+                "title": article.title,
+                "url": article.resolved_url,
+                "published_at": article.published_at.isoformat() if article.published_at else None,
+                "publisher": article.publisher,
+                "author": article.author,
+                "sentiment": article.sentiment_label,
+                "summary": article.summary,
+            }
+            for article in articles
+        ]
+    }

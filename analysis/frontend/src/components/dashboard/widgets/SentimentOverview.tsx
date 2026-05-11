@@ -6,11 +6,17 @@ const COLORS: Record<string, string> = {
   negative: "#ef4444"
 };
 
-export function SentimentOverview({ donut }: { donut: any[] }) {
+type Props = {
+  donut: any[];
+  onDrillDown: (label: string) => void;
+};
+
+export function SentimentOverview({ donut, onDrillDown }: Props) {
   if (!donut || donut.length === 0) return null;
 
   const data = donut.map(d => ({
     name: d.label.charAt(0).toUpperCase() + d.label.slice(1),
+    rawValue: d.label,
     value: d.count,
     color: COLORS[d.label.toLowerCase()] ?? "#cbd5e1"
   }));
@@ -56,6 +62,8 @@ export function SentimentOverview({ donut }: { donut: any[] }) {
             radius={[6, 6, 0, 0]} 
             barSize={45}
             animationDuration={1500}
+            className="cursor-pointer"
+            onClick={(data) => onDrillDown(data.payload.rawValue)}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
@@ -65,11 +73,15 @@ export function SentimentOverview({ donut }: { donut: any[] }) {
       </ResponsiveContainer>
       <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50 w-full justify-center">
         {data.map((d, i) => (
-          <div key={i} className="flex items-center gap-2 group transition-all">
+          <button 
+            key={i} 
+            onClick={() => onDrillDown(d.rawValue)}
+            className="flex items-center gap-2 group transition-all hover:scale-105"
+          >
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }}></div>
-            <span className="text-xs font-bold text-slate-500">{d.name}</span>
+            <span className="text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">{d.name}</span>
             <span className="text-sm font-black text-slate-900">{d.value}</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>

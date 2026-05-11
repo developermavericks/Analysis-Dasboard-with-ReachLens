@@ -1,4 +1,16 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  LayoutDashboard, 
+  Upload, 
+  Settings, 
+  HelpCircle, 
+  Menu, 
+  X,
+  Database,
+  Search,
+  Zap
+} from "lucide-react";
 import { UploadZone } from "./components/upload/UploadZone";
 import { UploadProgress } from "./components/upload/UploadProgress";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
@@ -6,43 +18,135 @@ import { useUpload } from "./hooks/useUpload";
 
 export function App() {
   const [uploadId, setUploadId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { status, startUpload } = useUpload();
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] text-[#0f172a] font-sans antialiased">
-      {/* Top Bar */}
-      <nav className="h-16 px-8 border-b border-[#e2e8f0] bg-white flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 bg-[#0f172a] rounded flex items-center justify-center text-white">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+    <div className="flex min-h-screen relative overflow-hidden">
+      {/* Shared Sidebar */}
+      <motion.aside 
+        initial={false}
+        animate={{ width: isSidebarOpen ? 280 : 88 }}
+        className="fixed left-0 top-0 bottom-0 bg-slate-900 border-r border-white/5 z-50 flex flex-col p-4 transition-all duration-500"
+      >
+        <div className="flex items-center gap-3 mb-12 px-2 h-10 overflow-hidden">
+          <div className="min-w-[40px] h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/40">
+            <Zap size={22} fill="currentColor" />
           </div>
-          <span className="text-lg font-bold tracking-tight">MAVERICKS V2</span>
-          <span className="mx-2 text-[#e2e8f0]">|</span>
-          <span className="text-sm font-medium text-[#94a3b8]">Analysis Dashboard</span>
+          <AnimatePresence>
+            {isSidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="whitespace-nowrap"
+              >
+                <h1 className="text-lg font-black text-white leading-none tracking-tight">MAVERICKS <span className="text-blue-500">V2</span></h1>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">Intelligence System</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        {!uploadId && (
-          <div className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
-            Step 1 <span className="text-[#cbd5e1] mx-1">of</span> 2
-          </div>
-        )}
-      </nav>
 
-      <main className="max-w-7xl mx-auto pt-16 px-6">
-        {!uploadId ? (
-          <UploadZone
-            onUploaded={(id) => {
-              setUploadId(id);
-            }}
-            onAnalyze={startUpload}
-          />
-        ) : (
-          <div className="space-y-12 pb-24">
-            <UploadProgress uploadId={uploadId} status={status} />
-            {status === "complete" ? <DashboardLayout uploadId={uploadId} /> : null}
-          </div>
-        )}
+        <nav className="flex-1 space-y-2">
+          {[
+            { id: "home", icon: Upload, label: "Asset Intake", subtitle: "Strategic Data Feed", active: !uploadId },
+            { id: "dashboard", icon: LayoutDashboard, label: "Intelligence HQ", subtitle: "Live Analysis Insights", active: !!uploadId },
+            { id: "history", icon: Database, label: "Knowledge Base", subtitle: "Historical Archives", active: false },
+          ].map((item) => (
+            <button
+              key={item.id}
+              className={`w-full group relative flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 ${
+                item.active 
+                ? "bg-blue-600 text-white shadow-xl shadow-blue-900/30" 
+                : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <item.icon size={22} className={`min-w-[22px] ${item.active ? "scale-110" : "group-hover:scale-110"} transition-transform`} />
+              <AnimatePresence>
+                {isSidebarOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="text-left whitespace-nowrap overflow-hidden"
+                  >
+                    <p className="font-bold text-sm leading-tight">{item.label}</p>
+                    <p className="text-[9px] font-medium opacity-60 mt-0.5">{item.subtitle}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto space-y-2">
+           <button className="w-full flex items-center gap-4 p-3.5 text-slate-400 hover:text-white transition-colors">
+              <HelpCircle size={22} />
+              {isSidebarOpen && <span className="text-sm font-bold">Protocol Support</span>}
+           </button>
+           <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="w-full p-3.5 bg-white/5 text-slate-400 hover:text-white rounded-2xl transition-colors flex items-center justify-center"
+            >
+              {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+        </div>
+      </motion.aside>
+
+      {/* Main Container */}
+      <main 
+        className="flex-1 transition-all duration-500 overflow-y-auto"
+        style={{ paddingLeft: isSidebarOpen ? 280 : 88 }}
+      >
+        <AnimatePresence mode="wait">
+          {!uploadId ? (
+            <motion.div
+              key="landing"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="pl-12 pr-20 pt-24 pb-20"
+            >
+              <header className="mb-16 flex flex-col items-center text-center">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="px-3 py-1 bg-blue-600 text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-full">
+                    Step 1 of 2
+                  </div>
+                  <div className="h-px w-12 bg-slate-200"></div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Awaiting Strategic Assets</span>
+                </div>
+                <h1 className="text-6xl font-black text-slate-900 tracking-tighter leading-none mb-4">
+                  Strategic <span className="text-blue-600">Asset</span> <br/>Intake Node
+                </h1>
+                <p className="text-slate-400 text-xl font-medium max-w-2xl leading-relaxed">
+                  Upload your intelligence vectors (CSV/XLSX) to initialize the proprietary sentiment analysis engine.
+                </p>
+              </header>
+
+              <div className="flex justify-center">
+                <UploadZone
+                  onUploaded={(id) => setUploadId(id)}
+                  onAnalyze={startUpload}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="relative"
+            >
+              {status !== "complete" && (
+                <div className="max-w-7xl mx-auto pt-12 px-8">
+                   <UploadProgress uploadId={uploadId} status={status} />
+                </div>
+              )}
+              {status === "complete" ? <DashboardLayout uploadId={uploadId} /> : null}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

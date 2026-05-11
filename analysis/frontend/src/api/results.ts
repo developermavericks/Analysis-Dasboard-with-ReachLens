@@ -9,3 +9,8 @@ export async function getScopes(uploadId: string, type: "sector" | "client" = "s
   const res = await api.get(`/uploads/${uploadId}/scopes`, { params: { type } });
   return res.data?.values ?? [];
 }
+
+export async function getArticles(uploadId: string, filters: { sentiment?: string, publication?: string, author?: string, brand?: string, scope?: string, scope_type?: string }) {
+  const res = await api.get(`/uploads/${uploadId}/articles`, { params: filters });
+  return res.data;
+}
