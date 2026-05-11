@@ -24,19 +24,19 @@
 
 ```mermaid
 graph TD
-    A[Excel/CSV Upload<br/>via Drag & Drop] --> B[Column Mapping<br/>Auto-detect + Manual]
-    B --> C[Phase 1: Preprocess<br/>Text Cleaning, Author Normalize]
-    C --> D[Phase 2: NER<br/>Entities Extraction]
-    D --> E[Phase 3: Sentiment<br/>Positive/Negative/Neutral]
-    E --> F[Phase 4: TF-IDF<br/>Topics & Keywords]
-    F --> G[Phase 5: ReachLens<br/>Social Scrape + Google Reach Est.]
-    G --> H[Phase 6: Aggregate<br/>Metrics, Top Lists]
-    H --> I[PostgreSQL Storage]
-    I --> J[FastAPI API Endpoints]
-    J --> K[React Dashboard<br/>Widgets: Sentiment Overview, WordClouds<br/>(Pos/Neg/HotTopics), Top Companies/Journalists/Pubs<br/>Client/Sector/Comparison/ReachLens Views]
+    A["Excel/CSV Upload<br/>via Drag & Drop"] --> B["Column Mapping<br/>Auto-detect + Manual"]
+    B --> C["Phase 1: Preprocess<br/>Text Cleaning, Author Normalize"]
+    C --> D["Phase 2: NER<br/>Entities Extraction"]
+    D --> E["Phase 3: Sentiment<br/>Positive/Negative/Neutral"]
+    E --> F["Phase 4: TF-IDF<br/>Topics & Keywords"]
+    F --> G["Phase 5: ReachLens<br/>Social Scrape + Google Reach Est."]
+    G --> H["Phase 6: Aggregate<br/>Metrics, Top Lists"]
+    H --> I["PostgreSQL Storage"]
+    I --> J["FastAPI API Endpoints"]
+    J --> K["React Dashboard<br/>Widgets: Sentiment Overview, WordClouds<br/>(Pos/Neg/HotTopics), Top Companies/Journalists/Pubs<br/>Client/Sector/Comparison/ReachLens Views"]
     
-    L[Docker Compose<br/>Backend + Frontend + Celery + Redis + Postgres + Nginx] -.-> A
-    M[Scripts: Seed Data<br/>Clients, Publisher Tiers, Bulk Retag] -.-> I
+    L["Docker Compose<br/>Backend + Frontend + Celery + Redis + Postgres + Nginx"] -.-> A
+    M["Scripts: Seed Data<br/>Clients, Publisher Tiers, Bulk Retag"] -.-> I
     
     style A fill:#e1f5fe
     style K fill:#f3e5f5

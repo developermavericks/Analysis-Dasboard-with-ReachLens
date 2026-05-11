@@ -18,18 +18,18 @@ graph TD
     Gateway -->|Port 3000| Backend[FastAPI Server]
     
     subgraph "The Orchestration Layer"
-        Backend -->|Write Initial| DB[(PostgreSQL 16)]
-        Backend -->|Enqueue Job| Worker[Celery Orchestrator]
-        Worker <-->|State Management| Cache[(Redis 7.0)]
+        Backend -->|Write Initial| DB[("PostgreSQL 16")]
+        Backend -->|Enqueue Job| Worker["Celery Orchestrator"]
+        Worker <-->|State Management| Cache[("Redis 7.0")]
     end
     
     subgraph "🚀 6-Phase Intelligence Pipeline"
-        Worker -->|Phase 1| Clean[Data Cleaning & Language Filter]
-        Clean -->|Phase 2| NER[Brand Entity Extraction]
-        NER -->|Phase 3| Sentiment[Sentiment Mapping]
-        Sentiment -->|Phase 4| Scoring[ReachLens Evaluator]
-        Scoring -->|Phase 5| Dedup[Fuzzy Deduplication]
-        Dedup -->|Phase 6| Agg[Aggregation & Cache Build]
+        Worker -->|Phase 1| Clean["Data Cleaning & Language Filter"]
+        Clean -->|Phase 2| NER["Brand Entity Extraction"]
+        NER -->|Phase 3| Sentiment["Sentiment Mapping"]
+        Sentiment -->|Phase 4| Scoring["ReachLens Evaluator"]
+        Scoring -->|Phase 5| Dedup["Fuzzy Deduplication"]
+        Dedup -->|Phase 6| Agg["Aggregation & Cache Build"]
     end
     
     Agg -->|Update Record| DB
