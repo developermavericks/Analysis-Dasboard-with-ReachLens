@@ -14,28 +14,28 @@ How does ReachLens turn a simple URL into high-fidelity intelligence?
 
 ```mermaid
 graph TD
-    User[User Inputs URL] -->|API Request| Backend[Node.js Server]
-    Backend -->|Phase 1| Scraper[Stealth Scraper]
+    User["User Inputs URL"] -->|API Request| Backend["Node.js Server"]
+    Backend -->|Phase 1| Scraper["Stealth Scraper"]
     
     subgraph "Dual-Core Extraction Engine"
-        Scraper -->|Attempt 1| Direct[Google Search Scraper]
-        Scraper -->|Attempt 2| Reddit[Reddit API Scraper]
-        Direct -.->|If Blocked| Fallback[Estimator Path]
+        Scraper -->|Attempt 1| Direct["Google Search Scraper"]
+        Scraper -->|Attempt 2| Reddit["Reddit API Scraper"]
+        Direct -.->|If Blocked| Fallback["Estimator Path"]
     end
     
-    Direct -->|Raw Data| Analysis[Analysis Controller]
+    Direct -->|Raw Data| Analysis["Analysis Controller"]
     Reddit -->|Social Signals| Analysis
     Fallback -->|Predicted Data| Analysis
     
     subgraph "ReachLens Logic Core (The Brain)"
-        Analysis -->|v2.0| Classic[Dual-Core Logic]
-        Analysis -->|v3.0| Context[Contextual Logic]
-        Analysis -->|v4.0| Causal[Causal Logic]
-        Analysis -->|v5.0| Agentic[Behavioral Engine]
+        Analysis -->|v2.0| Classic["Dual-Core Logic"]
+        Analysis -->|v3.0| Context["Contextual Logic"]
+        Analysis -->|v4.0| Causal["Causal Logic"]
+        Analysis -->|v5.0| Agentic["Behavioral Engine"]
     end
     
-    Agentic -->|Final Metrics| DB[(SQLite Database)]
-    DB -->|JSON| Dashboard[React Frontend]
+    Agentic -->|Final Metrics| DB[("SQLite Database")]
+    DB -->|JSON| Dashboard["React Frontend"]
 ```
 
 ---
