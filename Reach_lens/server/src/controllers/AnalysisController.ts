@@ -270,32 +270,14 @@ export const bulkAnalyze = async (req: Request, res: Response) => {
                 const result = await performAnalysis(url, version);
                 results.push({
                     'URL': result.url,
-                    'Google Mentions': result.googleMentions,
-                    'Reddit Mentions': result.redditMentions,
-                    'Total Mentions': result.totalMentions,
                     'Estimated Reach': Math.round(result.estimatedReach),
-                    'UVR (Unique Reach)': Math.round(result.uvr),
-                    'Social Diffusion': result.entropy.toFixed(2),
-                    'Sentiment Impact': result.sentimentScore > 1 ? "Positive" : result.sentimentScore < -1 ? "Controversy" : "Neutral",
-                    'Sentiment Score': result.sentimentScore,
-                    'Truth Confidence (%)': result.confidenceScore,
-                    'Agentic Rank': result.agenticStatus || 'None',
-                    'Growth Velocity': result.velocity
+                    'UVR (Unique Reach)': Math.round(result.uvr)
                 });
             } catch (err) {
                 results.push({
                     'URL': url,
-                    'Google Mentions': 0,
-                    'Reddit Mentions': 0,
-                    'Total Mentions': 0,
                     'Estimated Reach': 0,
-                    'UVR (Unique Reach)': 0,
-                    'Social Diffusion': '0.00',
-                    'Sentiment Impact': 'Error',
-                    'Sentiment Score': 0,
-                    'Truth Confidence (%)': 0,
-                    'Agentic Rank': 'Error',
-                    'Growth Velocity': 0
+                    'UVR (Unique Reach)': 0
                 });
             }
         }

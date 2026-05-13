@@ -157,6 +157,7 @@ export class SmartScraper {
                 return null; // Force fallback
             }
 
+
             // Extract Domains & Rank from Top Results (v3.0 Positional Weighting)
             const matches = await page.evaluate(() => {
                 const anchors = Array.from(document.querySelectorAll('.g a'));
